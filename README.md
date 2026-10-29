@@ -134,7 +134,7 @@ java/
 > 保留历史问题原文；已修掉的条目在末尾标 **（已修复）** 并说明新做法，未标记的仍然存在。汇总见文末「修复记录」。
 
 - **没有构建脚本**：没有 `pom.xml` 也没有 `build.gradle`，无法 `mvn compile`；`lib/` 下的两个 jar 只能靠 IDEA 的模块配置挂上，命令行必须手写 `-cp "lib/*"`。要把这个工程给别人跑，得先补一个 `pom.xml` 或 `build.gradle`。（未修复）
-- **`lib/` 里的两个 jar 完全没被使用**：`commons-io` 和 `hutool` 在 `src` 里零引用，白白占了 3 MB 仓库体积。真正用到 hutool 的是隔壁 `puzzlegame`。（未修复）
+- **`lib/` 里的两个 jar 完全没被使用**：`commons-io` 和 `hutool` 在 `src` 里零引用，白白占了 3 MB 仓库体积。真正用到 hutool 的是隔壁 `puzzle-game`。（未修复）
 - **`.idea/` 和 `java.iml` 全部入库**（14 + 1 个文件）。`.gitignore` 里只写了 `out/`、`bin/`、`.DS_Store`，**漏了 `.idea/` 和 `*.iml`**——而隔壁 `leetcode` 仓库的 `.gitignore` 是写了的。入库的配置里还带着别人的路径痕迹：`editor.xml` 里全是 `$USER_HOME$/AppData/Local/Temp/leetcode/...`（Windows 路径），`misc.xml` 里指向不存在的 `maven_java/pom.xml`、`maven/pom.xml`，换台机器打开工程会有一堆无效配置。（未修复）
 - **`name.txt` / `month12/info.properties` 明文存了账号密码**（已处理）：原来是 `username=wjh&password=<真实密码>` 这种格式，`info.properties` 里还有三条明文口令。这两个文件已全部替换为占位数据（`admin` / `test` / `123456`）。注意 **git 历史里的旧内容仍然存在**，如果那个密码你还在别处使用，请直接更换密码，而不是只依赖这次清理。（未修复，属历史清理）
 - **`leetcode/no_108` 题号与内容不符**：文件名是 108（将有序数组转换为二叉搜索树），内容是 98（验证二叉搜索树），和 `no_98` 重复。更麻烦的是它的解法**是错的**——只比较了父子节点的直接大小关系，没有传递上下界，对 `[5,1,4,null,null,3,6]` 这种「孙子节点违反 BST 性质」的用例会误判为 `true`。`no_98` 里的中序遍历版本才是对的。**（已修复）** `no_108.java` 已重写成**真正的 108 题**：中位数建树（`mid = left + (right - left) / 2` 防溢出）、左右两半递归，附带 `main` 自测（中序遍历还原 + 高度差平衡校验，5 组用例全 PASS）；重复的错误实现已消失，98 的正确实现仍在 `no_98.java` 且未改动。
