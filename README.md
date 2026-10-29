@@ -43,12 +43,14 @@
 | 主题 | 题号 |
 | --- | --- |
 | 链表 | 2 两数相加、19 删除倒数第 N 个结点、21 合并两个有序链表、24 两两交换、141 环形链表、142 环形链表 II、146 LRU 缓存、148 排序链表、160 相交链表、206 反转链表、234 回文链表 |
-| 二叉树 | 94 中序遍历、98 验证 BST、101 对称二叉树、102 层序遍历、104 最大深度、105 前序+中序构造、114 展开为链表、199 右视图、226 翻转、230 第 K 小、437 路径总和 III、543 二叉树的直径 |
+| 二叉树 | 94 中序遍历、98 验证 BST、101 对称二叉树、102 层序遍历、104 最大深度、105 前序+中序构造、**108 将有序数组转换为二叉搜索树**、114 展开为链表、199 右视图、226 翻转、230 第 K 小、437 路径总和 III、543 二叉树的直径 |
 | 数组 / 矩阵 | 35 搜索插入位置、48 旋转图像、54 螺旋矩阵、73 矩阵置零、118 杨辉三角、189 轮转数组、240 搜索二维矩阵 II |
 | 动态规划 | 70 爬楼梯 |
-| 其他 | 138 随机链表的复制（`Node` 类）、108（内容实为 98，见「已知问题」） |
+| 其他 | 138 随机链表的复制（`Node` 类） |
 
 `no_146` 用了取巧写法：直接 `extends LinkedHashMap` 并重写 `removeEldestEntry`，靠 `accessOrder=true` 实现 LRU，这也是整个工程唯一触发 `unchecked` 编译警告的地方。
+
+`no_108` 是**本轮新增的解法**（此前该文件误放了一份 98 的错误实现，详见「已知问题」）：取中点递归建树，`mid = left + (right - left) / 2` 防 `left + right` 溢出，天然高度平衡；文件末尾带 `main` 自测，用中序遍历还原数组（同时验证 BST 性质）+ 递归高度差校验平衡性，5 组用例（`[-10,-3,0,5,9]`、`[1,3]`、`[]`、`[1]`、`[0..9]`）全 PASS。98 的正确实现仍是 `no_98.java`（中序遍历取序列后判严格递增），未改动。
 
 顺带一个可以佐证「这里只是随手练」的细节：`.idea/leetcode/statistics.xml` 里记录了 LeetCode 插件在这个工程上的统计——通过 35 题（简单 27 / 中等 8 / 困难 0），而 `src/leetcode` 里实际只有 33 个解法文件，说明有题目是写在这个工程之外、或者写完没保存下来的。
 
@@ -78,8 +80,9 @@ java -cp out month12.Client
 # 跑动态代理
 java -cp out month12.day8.test
 
-# 跑某道力扣题（注意 leetcode 子目录里的类多数没有 main，需要自己加）
+# 跑某道力扣题（注意 leetcode 子目录里的类多数没有 main，需要自己加；no_108 自带 main 可直接跑）
 java -cp out leetcode.no_146
+java -cp out leetcode.no_108          # 108 的自测：5 组用例，打印 PASS/层序/中序一致/平衡
 ```
 
 用 IDEA：`File → Open` 选仓库根目录即可，`java.iml` 已经把 `src` 标成 Sources Root、把 `lib/*.jar` 挂成依赖，直接右键任意 `main` 运行。
@@ -128,15 +131,26 @@ java/
 
 ## 已知问题
 
-- **没有构建脚本**：没有 `pom.xml` 也没有 `build.gradle`，无法 `mvn compile`；`lib/` 下的两个 jar 只能靠 IDEA 的模块配置挂上，命令行必须手写 `-cp "lib/*"`。要把这个工程给别人跑，得先补一个 `pom.xml` 或 `build.gradle`。
-- **`lib/` 里的两个 jar 完全没被使用**：`commons-io` 和 `hutool` 在 `src` 里零引用，白白占了 3 MB 仓库体积。真正用到 hutool 的是隔壁 `puzzlegame`。
-- **`.idea/` 和 `java.iml` 全部入库**（14 + 1 个文件）。`.gitignore` 里只写了 `out/`、`bin/`、`.DS_Store`，**漏了 `.idea/` 和 `*.iml`**——而隔壁 `leetcode` 仓库的 `.gitignore` 是写了的。入库的配置里还带着别人的路径痕迹：`editor.xml` 里全是 `$USER_HOME$/AppData/Local/Temp/leetcode/...`（Windows 路径），`misc.xml` 里指向不存在的 `maven_java/pom.xml`、`maven/pom.xml`，换台机器打开工程会有一堆无效配置。
-- **`name.txt` / `month12/info.properties` 明文存了账号密码**（已处理）：原来是 `username=wjh&password=<真实密码>` 这种格式，`info.properties` 里还有三条明文口令。这两个文件已全部替换为占位数据（`admin` / `test` / `123456`）。注意 **git 历史里的旧内容仍然存在**，如果那个密码你还在别处使用，请直接更换密码，而不是只依赖这次清理。
-- **`leetcode/no_108` 题号与内容不符**：文件名是 108（将有序数组转换为二叉搜索树），内容是 98（验证二叉搜索树），和 `no_98` 重复。更麻烦的是它的解法**是错的**——只比较了父子节点的直接大小关系，没有传递上下界，对 `[5,1,4,null,null,3,6]` 这种「孙子节点违反 BST 性质」的用例会误判为 `true`。`no_98` 里的中序遍历版本才是对的。
-- **`month10/demo1` 是空壳**：`Swim` 是个空接口，`Test` 类里连 `main` 都没有，这个目录实际什么都没练到。
-- **`month12/a.properties`、`a.txt` 是无主遗留文件**：`a.properties` 写着 `class=month12.Student` / `method=study`，但 `month12` 下并没有 `Student` 类（只有一个 `day8/Student`），而且 `grep -rn "a.properties"` 显示**没有任何代码读它**——应该是某次 Properties 练习留下的，可以直接删。
-- **`month11/` 只有一个类、没有 `main`**：`Solution.productExceptSelf` 是纯方法，`Main` 里 `new Solution()` 调用后又把结果 `println` 在方法内部，属于边写边调试的痕迹，不能直接运行验证。
-- **`JavaLearn/mystatic/Student.show(Student this)` 用了接收者参数（receiver parameter）**：语法合法（JDK 8+），但这是很少见的写法，容易被误认为写错；而且 `test1` 里 `import JavaLearn.arraylist.Student;` 之后又用全限定名 `JavaLearn.mystatic.Student`，说明当时被同名类搞混过。
-- **`JavaLearn/studentSystem` 里有两套互不相干的 `main`**：`StudentSystem`（学生增删改查）和 `app`（用户注册登录 + 验证码），`app` 的菜单里有 `case "4" -> test(list)`，但菜单只打印了 1/2/3 三个选项，第 4 项是个没做完的测试入口。
-- **无任何单元测试**：所有验证都靠 `main` 里 `System.out.println` 和肉眼比对，`Student`/`User`/`Phone` 这些实体类也没有测试覆盖。
-- **命名不统一**：`JavaLearn` 用小驼峰（`phone`、`car`、`demo1`），`leetcode` 用 `no_题号`，`month12/day8` 里主类叫 `test`（小写）。工程里还混着中文包名 `JavaLearn/多态`，在部分工具链/CI 上会有编码问题。
+> 保留历史问题原文；已修掉的条目在末尾标 **（已修复）** 并说明新做法，未标记的仍然存在。汇总见文末「修复记录」。
+
+- **没有构建脚本**：没有 `pom.xml` 也没有 `build.gradle`，无法 `mvn compile`；`lib/` 下的两个 jar 只能靠 IDEA 的模块配置挂上，命令行必须手写 `-cp "lib/*"`。要把这个工程给别人跑，得先补一个 `pom.xml` 或 `build.gradle`。（未修复）
+- **`lib/` 里的两个 jar 完全没被使用**：`commons-io` 和 `hutool` 在 `src` 里零引用，白白占了 3 MB 仓库体积。真正用到 hutool 的是隔壁 `puzzlegame`。（未修复）
+- **`.idea/` 和 `java.iml` 全部入库**（14 + 1 个文件）。`.gitignore` 里只写了 `out/`、`bin/`、`.DS_Store`，**漏了 `.idea/` 和 `*.iml`**——而隔壁 `leetcode` 仓库的 `.gitignore` 是写了的。入库的配置里还带着别人的路径痕迹：`editor.xml` 里全是 `$USER_HOME$/AppData/Local/Temp/leetcode/...`（Windows 路径），`misc.xml` 里指向不存在的 `maven_java/pom.xml`、`maven/pom.xml`，换台机器打开工程会有一堆无效配置。（未修复）
+- **`name.txt` / `month12/info.properties` 明文存了账号密码**（已处理）：原来是 `username=wjh&password=<真实密码>` 这种格式，`info.properties` 里还有三条明文口令。这两个文件已全部替换为占位数据（`admin` / `test` / `123456`）。注意 **git 历史里的旧内容仍然存在**，如果那个密码你还在别处使用，请直接更换密码，而不是只依赖这次清理。（未修复，属历史清理）
+- **`leetcode/no_108` 题号与内容不符**：文件名是 108（将有序数组转换为二叉搜索树），内容是 98（验证二叉搜索树），和 `no_98` 重复。更麻烦的是它的解法**是错的**——只比较了父子节点的直接大小关系，没有传递上下界，对 `[5,1,4,null,null,3,6]` 这种「孙子节点违反 BST 性质」的用例会误判为 `true`。`no_98` 里的中序遍历版本才是对的。**（已修复）** `no_108.java` 已重写成**真正的 108 题**：中位数建树（`mid = left + (right - left) / 2` 防溢出）、左右两半递归，附带 `main` 自测（中序遍历还原 + 高度差平衡校验，5 组用例全 PASS）；重复的错误实现已消失，98 的正确实现仍在 `no_98.java` 且未改动。
+- **`month10/demo1` 是空壳**：`Swim` 是个空接口，`Test` 类里连 `main` 都没有，这个目录实际什么都没练到。（未修复）
+- **`month12/a.properties`、`a.txt` 是无主遗留文件**：`a.properties` 写着 `class=month12.Student` / `method=study`，但 `month12` 下并没有 `Student` 类（只有一个 `day8/Student`），而且 `grep -rn "a.properties"` 显示**没有任何代码读它**——应该是某次 Properties 练习留下的，可以直接删。（未修复）
+- **`month11/` 只有一个类、没有 `main`**：`Solution.productExceptSelf` 是纯方法，`Main` 里 `new Solution()` 调用后又把结果 `println` 在方法内部，属于边写边调试的痕迹，不能直接运行验证。（未修复）
+- **`JavaLearn/mystatic/Student.show(Student this)` 用了接收者参数（receiver parameter）**：语法合法（JDK 8+），但这是很少见的写法，容易被误认为写错；而且 `test1` 里 `import JavaLearn.arraylist.Student;` 之后又用全限定名 `JavaLearn.mystatic.Student`，说明当时被同名类搞混过。（未修复）
+- **`JavaLearn/studentSystem` 里有两套互不相干的 `main`**：`StudentSystem`（学生增删改查）和 `app`（用户注册登录 + 验证码），`app` 的菜单里有 `case "4" -> test(list)`，但菜单只打印了 1/2/3 三个选项，第 4 项是个没做完的测试入口。（未修复）
+- **无任何单元测试**：所有验证都靠 `main` 里 `System.out.println` 和肉眼比对，`Student`/`User`/`Phone` 这些实体类也没有测试覆盖。（未修复；`no_108` 的 `main` 自测是唯一带断言式输出的例子）
+- **命名不统一**：`JavaLearn` 用小驼峰（`phone`、`car`、`demo1`），`leetcode` 用 `no_题号`，`month12/day8` 里主类叫 `test`（小写）。工程里还混着中文包名 `JavaLearn/多态`，在部分工具链/CI 上会有编码问题。（未修复）
+
+## 修复记录
+
+| 文件 | 修了什么 | 现在的做法 |
+| --- | --- | --- |
+| `src/leetcode/no_108.java` | 文件名 108、内容却是 98 的错误实现（只比较父子节点，`[5,1,4,null,null,3,6]` 误判 true），且与 `no_98` 重复 | 重写为 108「将有序数组转换为 BST」：中位数建树、`left + (right - left) / 2` 防溢出 |
+| `src/leetcode/no_108.java` | 无任何可验证手段 | 增加 `main` 自测：中序还原比对 + 平衡性校验，5 组用例全 PASS |
+| `src/leetcode/no_98.java` | —— | **未改动**，仍是 98 的正确实现（中序遍历） |
+
